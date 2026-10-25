@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>XSS Lab — Comment Board</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px;
+           margin: 2rem auto; padding: 0 1rem; background: #f7f7f9; }
+    h1 { color: #b00; }
+    .banner { background: #ffe9e9; border: 1px solid #f5b5b5;
+              padding: .6rem 1rem; border-radius: 6px; color: #900;
+              font-size: .9rem; }
+    form { background: #fff; padding: 1rem; border-radius: 8px;
+           box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-top: 1rem; }
+    input, textarea { width: 100%; box-sizing: border-box; padding: .5rem;
+                      margin-bottom: .6rem; border: 1px solid #ccc;
+                      border-radius: 4px; font-family: inherit; }
+    textarea { min-height: 80px; resize: vertical; }
+    button { background: #2563eb; color: #fff; border: 0; padding: .55rem 1rem;
+             border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1e50c8; }
+    .comment { background: #fff; border-radius: 8px; padding: .75rem 1rem;
+               margin-top: .8rem; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+    .meta { font-size: .8rem; color: #666; margin-bottom: .25rem; }
+    .message { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>XSS Lab — Comment Board</h1>
+  <div class="banner">
+    ⚠️ Intentionally vulnerable. Do not expose on a network. For local training only.
+  </div>
+
+  <form id="commentForm">
+    <input id="name" placeholder="Your name (optional)" />
+    <textarea id="message" placeholder="Write a comment..." required></textarea>
+    <button type="submit">Post Comment</button>
+  </form>
+
+  <div id="comments"></div>
+
+<script>
+  const commentsEl = document.getElementById('comments');
+  const form = document.getElementById('commentForm');
+
+  // VULNERABLE: rendering untrusted data with innerHTML
+  function render(comments) {
+    commentsEl.innerHTML = comments
+      .slice()
+      .reverse()
+      .map(c => `
+        <div class="comment">
+          <div class="meta">${c.name} • ${new Date(c.createdAt).toLocaleString()}</div>
+          <div class="message">${c.message}</div>
+        </div>
+      `).join('');
+  }
+
+  async function load() {
+    const res = await fetch('/api/comments');
+    render(await res.json());
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('name').value;
+    const message = document.getElementById('message').value;
+    await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, message })
+    });
+    document.getElementById('message').value = '';
+    load();
+  });
+
+  load();
+</script>
+</body>
+</html>
