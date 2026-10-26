@@ -78,7 +78,7 @@ You do **not** need a database — comments are held in memory and reset when th
 
 ### Option A: Node.js (Express)
 
-```bash
+```
 # 1. Create the project folder
 mkdir xss-lab && cd xss-lab
 
@@ -90,14 +90,18 @@ npm install
 
 # 4. Start the server
 npm start
+```
 
-Expected output:
+### Expected output:
 
-text
+```
   XSS Lab running at http://localhost:3000
   WARNING: Intentionally vulnerable. Local use only.
-Option B: Python (Flask)
-bash
+```
+
+### Option B: Python (Flask)
+
+```
 # 1. Create the project folder
 mkdir xss-lab && cd xss-lab
 
@@ -108,10 +112,14 @@ pip install flask
 
 # 4. Start the server
 python app.py
+```
+
 Expected output:
 
-text
+```
  * Running on http://127.0.0.1:3000
+```
+
 Open the app
 Navigate to http://localhost:3000 in your browser.
 
