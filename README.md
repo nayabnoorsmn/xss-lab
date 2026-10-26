@@ -165,17 +165,19 @@ Instead, use a payload that executes when the browser parses it through innerHTM
 
 #### Payload 3 — Iframe with javascript: URI:
 
-html
+```
 <iframe src="javascript:alert('XSS')"></iframe>
+```
+
 What to observe:
 
-Paste one into the message box, click Post Comment.
-
-Reload the page — the alert fires.
-
-Open the page in a second browser — the alert fires there too.
+- Paste one into the message box, click Post Comment.
+- Reload the page — the alert fires.
+- Open the page in a second browser — the alert fires there too.
 
 ✅ If you see the alert, you have confirmed Stored XSS.
+
+---
 
 Step 2 — Demonstrate Persistence
 This step proves the payload is stored server-side, not just reflected in your current tab.
