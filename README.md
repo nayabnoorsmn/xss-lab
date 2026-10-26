@@ -423,12 +423,4 @@ If you're studying for a certification (OSCP, CEH, PortSwigger Web Security Acad
 ## 📄 License
 This lab is provided for educational purposes only. Use it freely for self-study, classroom instruction, or internal training. The authors accept no liability for misuse.
 
-## 🙏 Acknowledgements & Further Learning
-
-- OWASP — Cross-Site Scripting (XSS)
-- OWASP XSS Prevention Cheat Sheet
-- PortSwigger Web Security Academy — XSS
-- MDN — Content Security Policy
-- DOMPurify
-
 **Happy hacking — responsibly.** 🛡️
