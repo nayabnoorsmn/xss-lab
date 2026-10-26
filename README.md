@@ -127,10 +127,10 @@ You should see a red warning banner, a comment form, and an empty comment list.
 
 ## 🖱️ Using the App
 
--1. (Optional) Enter a name.
--2. Type a message in the textarea and click Post Comment.
--3. The comment appears immediately below the form.
--4. Refresh the page — comments are loaded from the server and re-rendered.
+- 1. (Optional) Enter a name.
+- 2. Type a message in the textarea and click Post Comment.
+- 3. The comment appears immediately below the form.
+- 4. Refresh the page — comments are loaded from the server and re-rendered.
 
 That "load → render" cycle is exactly where the vulnerability lives. Keep that in mind as you go through the exploitation steps.
 
