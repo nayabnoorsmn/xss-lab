@@ -179,20 +179,19 @@ What to observe:
 
 ---
 
-Step 2 — Demonstrate Persistence
+### Step 2 — Demonstrate Persistence
 This step proves the payload is stored server-side, not just reflected in your current tab.
 
-Post the payload: <img src=x onerror="alert('XSS')">
-
-Close the browser tab completely.
-
-Reopen http://localhost:3000.
-
-The alert fires again, before you interact with anything.
+- Post the payload: `<img src=x onerror="alert('XSS')">`
+- Close the browser tab completely.
+- Reopen http://localhost:3000.
+-The alert fires again, before you interact with anything.
 
 Why it works: on every page load, the client calls GET /api/comments, receives the stored raw HTML, and passes it to innerHTML. The browser parses the string fresh each time — so the payload re-executes on every visit.
 
 Teaching point: With Reflected XSS, a victim must click a crafted link. With Stored XSS, no link is needed — anyone who visits the page is a victim.
+
+---
 
 Step 3 — Cookie Theft
 This step shows how an attacker exfiltrates session data.
