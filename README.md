@@ -125,6 +125,8 @@ Navigate to http://localhost:3000 in your browser.
 
 You should see a red warning banner, a comment form, and an empty comment list.
 
+---
+
 ## 🖱️ Using the App
 - (Optional) Enter a name.
 - Type a message in the textarea and click Post Comment.
@@ -132,6 +134,8 @@ You should see a red warning banner, a comment form, and an empty comment list.
 - Refresh the page — comments are loaded from the server and re-rendered.
 
 That "load → render" cycle is exactly where the vulnerability lives. Keep that in mind as you go through the exploitation steps.
+
+---
 
 💥 Exploitation Walkthrough
 All payloads below target your own localhost. They are teaching examples, not
