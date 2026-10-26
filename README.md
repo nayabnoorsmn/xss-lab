@@ -92,7 +92,7 @@ npm install
 npm start
 ```
 
-### Expected output:
+Expected output:
 
 ```
   XSS Lab running at http://localhost:3000
@@ -120,19 +120,17 @@ Expected output:
  * Running on http://127.0.0.1:3000
 ```
 
-Open the app
+### Open the app
 Navigate to http://localhost:3000 in your browser.
 
 You should see a red warning banner, a comment form, and an empty comment list.
 
-🖱️ Using the App
-(Optional) Enter a name.
+## 🖱️ Using the App
 
-Type a message in the textarea and click Post Comment.
-
-The comment appears immediately below the form.
-
-Refresh the page — comments are loaded from the server and re-rendered.
+-1. (Optional) Enter a name.
+-2. Type a message in the textarea and click Post Comment.
+-3. The comment appears immediately below the form.
+-4. Refresh the page — comments are loaded from the server and re-rendered.
 
 That "load → render" cycle is exactly where the vulnerability lives. Keep that in mind as you go through the exploitation steps.
 
